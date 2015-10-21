@@ -27,7 +27,8 @@ $('.asset-gallery').entwine({
 	'onadd': function () {
 		let props = {
 			'name': this[0].getAttribute('data-asset-gallery-name'),
-			'initial_folder': this[0].getAttribute('data-asset-gallery-initial-folder')
+			'folderid': this[0].getAttribute('data-asset-gallery-folderid'),
+			'parentid': this[0].getAttribute('data-asset-gallery-parentid')
 		};
 
 		if (props.name === null) {
@@ -35,10 +36,7 @@ $('.asset-gallery').entwine({
 		}
 
 		let $search = $('.cms-search-form');
-
-		if ($search.find('[type=hidden][name="q[Folder]"]').length == 0) {
-			$search.append('<input type="hidden" name="q[Folder]" />');
-		}
+		let $create = $();
 
 		props.backend = FileBackend.create(
 			this[0].getAttribute('data-asset-gallery-search-url'),
@@ -47,18 +45,6 @@ $('.asset-gallery').entwine({
 			this[0].getAttribute('data-asset-gallery-limit'),
 			$search.find('[type=hidden][name="q[Folder]"]')
 		);
-
-		props.backend.emit(
-			'filter',
-			getVar('q[Name]'),
-			getVar('q[AppCategory]'),
-			getVar('q[Folder]'),
-			getVar('q[CreatedFrom]'),
-			getVar('q[CreatedTo]'),
-			getVar('q[CurrentFolderOnly]')
-		);
-
-		props.current_folder = getVar('q[Folder]') || props.initial_folder;
 
 		React.render(
 			<GalleryComponent {...props} />,

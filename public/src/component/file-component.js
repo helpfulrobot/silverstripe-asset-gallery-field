@@ -42,8 +42,8 @@ class FileComponent extends BaseComponent {
 	}
 
 	getThumbnailStyles() {
-		if (this.props.category === 'image') {
-			return {'backgroundImage': 'url(' + this.props.url + ')'};
+		if (this.props.thumbnail) {
+			return {'backgroundImage': 'url(' + this.props.thumbnail + ')'};
 		}
 
 		return {};
@@ -129,9 +129,11 @@ class FileComponent extends BaseComponent {
 
 FileComponent.propTypes = {
 	'id': React.PropTypes.number,
+	'parentid': React.PropTypes.number,
 	'title': React.PropTypes.string,
 	'category': React.PropTypes.string,
 	'url': React.PropTypes.string,
+	'thumbnail': React.PropTypes.string,
 	'dimensions': React.PropTypes.shape({
 		'width': React.PropTypes.number,
 		'height': React.PropTypes.number

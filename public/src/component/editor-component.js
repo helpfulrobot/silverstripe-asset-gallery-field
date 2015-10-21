@@ -121,9 +121,11 @@ class EditorComponent extends BaseComponent {
 EditorComponent.propTypes = {
 	'file': React.PropTypes.shape({
 		'id': React.PropTypes.number,
+		'parentid': React.PropTypes.number,
 		'title': React.PropTypes.string,
 		'basename': React.PropTypes.string,
 		'url': React.PropTypes.string,
+		'thumbnail': React.PropTypes.string,
 		'size': React.PropTypes.string,
 		'created': React.PropTypes.string,
 		'lastUpdated': React.PropTypes.string,

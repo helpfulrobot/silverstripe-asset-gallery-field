@@ -28,9 +28,14 @@ class AssetGalleryField extends FormField {
 	 */
 	public function __construct($name, $title = null, SS_List $source = null) {
 		parent::__construct($name, $title);
+
+		// Set source, if given
 		if($source) {
 			$this->setSource($source);
 		}
+
+		// Set default folder
+		$this->setCurrentPath($this->config()->defaultPath);
 	}
 
 	/**
@@ -68,9 +73,11 @@ class AssetGalleryField extends FormField {
 	private static $defaultPath = 'Uploads';
 
 	/**
-	 * @var string
+	 * ID of current folder
+	 *
+	 * @var int
 	 */
-	protected $currentPath;
+	protected $currentFolderID;
 
 	/**
 	 * @var int
@@ -99,10 +106,14 @@ class AssetGalleryField extends FormField {
 	public function search(SS_HTTPRequest $request) {
 		$filters = array();
 
-		if ($folder = $request->getVar('folder')) {
-			$filters['folder'] = $folder;
+		$folder = null;
+		if ($folderID = $request->getVar('folder')) {
+			$folder = Folder::get()->byID($folderID);
 		}
-
+		if(!$folder) {
+			$folderID = 0;
+		}
+		$filters['folder'] = $folderID;
 		$filters['page'] = 1;
 		$filters['limit'] = 10;
 
@@ -121,6 +132,8 @@ class AssetGalleryField extends FormField {
 		$response->setBody(json_encode(array(
 			'files' => $data['items'],
 			'count' => $data['count'],
+			'folderid' => $folderID,
+			'parentid' => $folder ? $folder->ParentID : 0
 		)));
 
 		return $response;
@@ -205,11 +218,8 @@ class AssetGalleryField extends FormField {
 		// Re-apply folder filter to search
 		$files = $this->getSource();
 
-		// @todo - make sure that AssetAdmin::currentPageID returns the ID of the folder in
-		// the 'folder' querystring. Otherwise this filter won't work
 		if (isset($filters['folder'])) {
-			$folder = $this->getFolder($filters['folder']);
-			$files = $files->filter('ParentID', $folder->ID);
+			$files = $files->filter('ParentID', $filters['folder']);
 		}
 		
 		$files = $files->sort(
@@ -239,29 +249,6 @@ class AssetGalleryField extends FormField {
 	}
 
 	/**
-	 * @param null|string $folder
-	 *
-	 * @return null|Folder
-	 */
-	protected function getFolder($folder = null) {
-		if ($folder) {
-			return Folder::find_or_make($folder);
-		}
-
-		$path = $this->config()->defaultPath;
-
-		if($this->getCurrentPath() !== null) {
-			$path = $this->getCurrentPath();
-		}
-
-		if (empty($path)) {
-			return null;
-		}
-
-		return Folder::find_or_make($path);
-	}
-
-	/**
 	 * @inheritdoc
 	 *
 	 * @param array $properties
@@ -278,7 +265,12 @@ class AssetGalleryField extends FormField {
 		$searchURL = $this->getSearchURL();
 		$updateURL = $this->getUpdateURL();
 		$deleteURL = $this->getDeleteURL();
-		$initialFolder = $this->getCurrentPath();
+		$folder = $this->getCurrentFolder();
+		$folderID = $this->getCurrentFolderID();
+		$parentID = 0;
+		if($folder) {
+			$parentID = $folder->ParentID;
+		}
 		$limit = $this->getLimit();
 
 		return "<div
@@ -288,7 +280,8 @@ class AssetGalleryField extends FormField {
 			data-asset-gallery-search-url='{$searchURL}'
 			data-asset-gallery-update-url='{$updateURL}'
 			data-asset-gallery-delete-url='{$deleteURL}'
-			data-asset-gallery-initial-folder='{$initialFolder}'
+			data-asset-gallery-folderid='{$folderID}'
+			data-asset-gallery-parentid='{$parentID}'
 			></div>";
 	}
 
@@ -314,21 +307,47 @@ class AssetGalleryField extends FormField {
 	}
 
 	/**
-	 * @return string
-	 */
-	public function getCurrentPath() {
-		return $this->currentPath;
-	}
-
-	/**
-	 * @param string $currentPath
+	 * Allows the current folder to be modified via a filename reference
 	 *
+	 * @param string $currentPath
 	 * @return $this
 	 */
 	public function setCurrentPath($currentPath) {
-		$this->currentPath = $currentPath;
+		$folder = Folder::find_or_make($currentPath);
+		$folderID = $folder ? $folder->ID : 0;
+		return $this->setCurrentFolderID($folderID);
+	}
 
+	/**
+	 * Set the ID of the folder being viewed. May be 0 for root.
+	 *
+	 * @param int $id
+	 * @return $this
+	 */
+	public function setCurrentFolderID($id) {
+		$this->currentFolderID = $id;
 		return $this;
+	}
+
+	/**
+	 * Gets the ID of the folder being viewed. May be 0 for root.
+	 *
+	 * @return int
+	 */
+	public function getCurrentFolderID() {
+		return $this->currentFolderID;
+	}
+
+	/**
+	 * If viewing a folder, return the object
+	 *
+	 * @return Folder|null
+	 */
+	public function getCurrentFolder() {
+		$folderID = $this->getCurrentFolderID();
+		if($folderID) {
+			return Folder::get()->byID($folderID);
+		}
 	}
 
 	/**
@@ -337,8 +356,10 @@ class AssetGalleryField extends FormField {
 	 * @return array
 	 */
 	protected function getObjectFromData(File $file) {
+		$thumbnail = $file->Thumbnail(200, 150);
 		$object = array(
 			'id' => $file->ID,
+			'parentid' => $file->ParentID,
 			'created' => $file->Created,
 			'lastUpdated' => $file->LastEdited,
 			'owner' => null,
@@ -353,6 +374,7 @@ class AssetGalleryField extends FormField {
 			'filename' => $file->Filename,
 			'extension' => $file->Extension,
 			'size' => $file->Size,
+			'thumbnail' => $thumbnail ? $thumbnail->getURL() : null,
 			'url' => $file->AbsoluteURL,
 		);
 

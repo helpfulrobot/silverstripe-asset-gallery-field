@@ -49,10 +49,10 @@ export default class extends BaseComponent {
 		this.state = {
 			'count': 0, // The number of files in the current view
 			'files': [],
-			'editing': null
+			'editing': null,
+			'folderid': props.folderid,
+			'parentid': props.parentid
 		};
-
-		this.folders = [props.initial_folder];
 
 		this.sort = 'name';
 		this.direction = 'asc';
@@ -88,19 +88,25 @@ export default class extends BaseComponent {
 			'onSearchData': (data) => {
 				this.setState({
 					'count': data.count,
-					'files': data.files
+					'files': data.files,
+					'folderid': data.folderid,
+					'parentid': data.parentid
 				});
 			},
 			'onMoreData': (data) => {
 				this.setState({
 					'count': data.count,
-					'files': this.state.files.concat(data.files)
+					'files': this.state.files.concat(data.files),
+					'folderid': data.folderid,
+					'parentid': data.parentid
 				});
 			},
 			'onNavigateData': (data) => {
 				this.setState({
 					'count': data.count,
-					'files': data.files
+					'files': data.files,
+					'folderid': data.folderid,
+					'parentid': data.parentid
 				});
 			},
 			'onDeleteData': (data) => {
@@ -144,12 +150,10 @@ export default class extends BaseComponent {
 		for (let event in this.listeners) {
 			this.props.backend.on(event, this.listeners[event]);
 		}
-
-		if (this.props.initial_folder !== this.props.current_folder) {
-			this.onNavigate(this.props.current_folder);
-		} else {
-			this.props.backend.search();
-		}
+		
+		this.onNavigate(this.props.folderid, this.props.parentid);
+		
+		this.resetBackPosition();
 	}
 
 	componentWillUnmount() {
@@ -159,16 +163,9 @@ export default class extends BaseComponent {
 	}
 
 	componentDidUpdate() {
-		var $select = $(React.findDOMNode(this)).find('.gallery__sort .dropdown'),
-			leftVal = $('.cms-content-toolbar:visible').width() + 24;
-
-		if (this.folders.length > 1) {
-			let backButton = this.refs.backButton.getDOMNode();
-
-			$(backButton).css({
-				left: leftVal
-			});
-		}
+		var $select = $(React.findDOMNode(this)).find('.gallery__sort .dropdown');
+		
+		this.resetBackPosition();
 
 		// We opt-out of letting the CMS handle Chosen because it doesn't re-apply the behaviour correctly.
 		// So after the gallery has been rendered we apply Chosen.
@@ -180,9 +177,21 @@ export default class extends BaseComponent {
 		// Chosen stops the change event from reaching React so we have to simulate a click.
 		$select.change(() => React.addons.TestUtils.Simulate.click($select.find(':selected')[0]));
 	}
+	
+	resetBackPosition() {
+		var leftVal = $('.cms-content-toolbar:visible').width() + 24;
+
+		if (this.state.folderid) {
+			let backButton = this.refs.backButton.getDOMNode();
+
+			$(backButton).css({
+				left: leftVal
+			});
+		}
+	}
 
 	getBackButton() {
-		if (this.folders.length > 1) {
+		if (this.state.folderid) {
 			return <button
 				className='ss-ui-button ui-button ui-widget ui-state-default ui-corner-all font-icon-level-up'
 				onClick={this.onBackClick}
@@ -259,13 +268,15 @@ export default class extends BaseComponent {
 	}
 
 	onFileNavigate(file) {
-		this.folders.push(file.filename);
-		this.props.backend.navigate(file.filename);
+		this.onNavigate(file.id, file.parentid);
 	}
 
-	onNavigate(folder) {
-		this.folders.push(folder);
-		this.props.backend.navigate(folder);
+	onNavigate(folderid, parentid) {
+		this.setState({
+			'folderid': folderid,
+			'parentid': parentid
+		});
+		this.props.backend.navigate(folderid);
 	}
 
 	onMoreClick(event) {
@@ -275,9 +286,8 @@ export default class extends BaseComponent {
 	}
 
 	onBackClick(event) {
-		if (this.folders.length > 1) {
-			this.folders.pop();
-			this.props.backend.navigate(this.folders[this.folders.length - 1]);
+		if (this.state.folderid) {
+			this.props.backend.navigate(this.state.parentid);
 		}
 
 		event.preventDefault();

@@ -37,7 +37,6 @@ export default class FileBackend extends Events {
 	navigate(folder) {
 		this.page = 1;
 		this.folder = folder;
-
 		this.persistFolderFilter(folder);
 
 		this.request('GET', this.search_url).then((json) => {
@@ -46,10 +45,6 @@ export default class FileBackend extends Events {
 	}
 
 	persistFolderFilter(folder) {
-		if (folder.substr(-1) === '/') {
-			folder = folder.substr(0, folder.length - 1);
-		}
-
 		this.$folder.val(folder);
 	}
 
@@ -61,14 +56,9 @@ export default class FileBackend extends Events {
 		});
 	}
 
-	filter(name, type, folder, createdFrom, createdTo, onlySearchInFolder) {
-		this.name = name;
-		this.type = type;
+	filter(folder) {
 		this.folder = folder;
-		this.createdFrom = createdFrom;
-		this.createdTo = createdTo;
-		this.onlySearchInFolder = onlySearchInFolder;
-
+		this.persistFolderFilter(folder);
 		this.search();
 	}
 
@@ -84,27 +74,8 @@ export default class FileBackend extends Events {
 		let defaults = {
 			'limit': this.limit,
 			'page': this.page,
+			'folder': this.folder
 		};
-
-		if (this.name && this.name.trim() !== '') {
-			defaults.name = decodeURIComponent(this.name);
-		}
-
-		if (this.folder && this.folder.trim() !== '') {
-			defaults.folder = decodeURIComponent(this.folder);
-		}
-
-		if (this.createdFrom && this.createdFrom.trim() !== '') {
-			defaults.createdFrom = decodeURIComponent(this.createdFrom);
-		}
-
-		if (this.createdTo && this.createdTo.trim() !== '') {
-			defaults.createdTo = decodeURIComponent(this.createdTo);
-		}
-
-		if (this.onlySearchInFolder && this.onlySearchInFolder.trim() !== '') {
-			defaults.onlySearchInFolder = decodeURIComponent(this.onlySearchInFolder);
-		}
 
 		this.showLoadingIndicator();
 
