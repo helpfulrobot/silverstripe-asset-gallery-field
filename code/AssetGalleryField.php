@@ -379,6 +379,7 @@ class AssetGalleryField extends FormField {
 	 * @return array
 	 */
 	protected function getObjectFromData(File $file) {
+		$thumbnail = $file->Thumbnail(200, 150);
 		$object = array(
 			'id' => $file->ID,
 			'created' => $file->Created,
@@ -395,6 +396,7 @@ class AssetGalleryField extends FormField {
 			'filename' => $file->Filename,
 			'extension' => $file->Extension,
 			'size' => $file->Size,
+			'thumbnail' => $thumbnail ? $thumbnail->getURL() : null,
 			'url' => $file->AbsoluteURL,
 		);
 

@@ -124,6 +124,7 @@ EditorComponent.propTypes = {
 		'id': React.PropTypes.number,
 		'title': React.PropTypes.string,
 		'basename': React.PropTypes.string,
+		'thumbnail': React.PropTypes.string,
 		'url': React.PropTypes.string,
 		'size': React.PropTypes.string,
 		'created': React.PropTypes.string,
