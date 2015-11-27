@@ -126,7 +126,7 @@ export default class extends BaseComponent {
 
 				this.setState({
 					'files': files,
-					'editing': false
+					'editing': null
 				});
 			}
 		};
